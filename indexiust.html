@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+
+        <!-- Leaflet CSS -->
+        <link rel="stylesheet" href="css/leaflet.css">
+        <!-- Search Control CSS -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet-search@2.9.9/dist/leaflet-search.min.css" />
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet.photon.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title>Map with Search</title>
+    </head>
+    <body>
+        <div id="map"></div>
+        <!-- Plugins -->
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="https://unpkg.com/leaflet-search@2.9.9/dist/leaflet-search.min.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/L.Control.Locate.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet.photon.js"></script>
+        <!-- Data layers -->
+        <script src="data/BUILDINGS_0.js"></script>
+        <script src="data/ROADS_1.js"></script>
+        <script>
+        // Initialize map
+        var map = L.map('map', { zoomControl:false, maxZoom:28, minZoom:1 })
+            .fitBounds([[33.921384683654864,75.01147811149058],[33.93036730191615,75.03063142978719]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix(
+            '<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; ' +
+            '<a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; ' +
+            '<a href="https://qgis.org">QGIS</a>'
+        );
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+
+        // Popup helpers
+        function removeEmptyRowsFromPopupContent(content, feature) {
+            var tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content;
+            var rows = tempDiv.querySelectorAll('tr');
+            for (var i = 0; i < rows.length; i++) {
+                var td = rows[i].querySelector('td.visible-with-data');
+                var key = td ? td.id : '';
+                if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                    rows[i].parentNode.removeChild(rows[i]);
+                }
+            }
+            return tempDiv.innerHTML;
+        }
+        function addClassToPopupIfMedia(content, popup) {
+            var tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content;
+            if (tempDiv.querySelector('td img')) {
+                popup._contentNode.classList.add('media');
+                setTimeout(function() { popup.update(); }, 10);
+            } else {
+                popup._contentNode.classList.remove('media');
+            }
+        }
+
+        // BUILDINGS layer
+        function pop_BUILDINGS_0(feature, layer) {
+            var popupContent = '<table>' +
+                '<tr><td colspan="2">' + (feature.properties['id'] || '') + '</td></tr>' +
+                '<tr><td colspan="2"><strong>Name</strong><br />' + (feature.properties['Name'] || '') + '</td></tr>' +
+                '<tr><td colspan="2">' + (feature.properties['descriptio'] || '') + '</td></tr>' +
+                '<tr><td colspan="2">' + (feature.properties['timestamp'] || '') + '</td></tr>' +
+                '<tr><td colspan="2">' + (feature.properties['begin'] || '') + '</td></tr>' +
+                '<tr><td colspan="2">' + (feature.properties['end'] || '') + '</td></tr>' +
+                '<tr><td colspan="2">' + (feature.properties['altitudeMo'] || '') + '</td></tr>' +
+                '<tr><td colspan="2">' + (feature.properties['tessellate'] || '') + '</td></tr>' +
+                '<tr><td colspan="2">' + (feature.properties['extrude'] || '') + '</td></tr>' +
+                '<tr><td colspan="2">' + (feature.properties['visibility'] || '') + '</td></tr>' +
+                '<tr><td colspan="2">' + (feature.properties['drawOrder'] || '') + '</td></tr>' +
+                '<tr><td colspan="2">' + (feature.properties['icon'] || '') + '</td></tr>' +
+            '</table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+            layer.on('popupopen', function(e) { addClassToPopupIfMedia(content, e.popup); });
+            layer.bindPopup(content, { maxHeight: 400 });
+        }
+        function style_BUILDINGS_0_0() {
+            return {
+                pane: 'pane_BUILDINGS_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                weight: 1.0,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(239,215,27,1.0)'
+            };
+        }
+        map.createPane('pane_BUILDINGS_0');
+        map.getPane('pane_BUILDINGS_0').style.zIndex = 400;
+        map.getPane('pane_BUILDINGS_0').style['mix-blend-mode'] = 'normal';
+        var layer_BUILDINGS_0 = L.geoJson(json_BUILDINGS_0, {
+            pane: 'pane_BUILDINGS_0',
+            onEachFeature: pop_BUILDINGS_0,
+            style: style_BUILDINGS_0_0
+        }).addTo(map);
+
+        // ROADS layer
+        function pop_ROADS_1(feature, layer) {
+            var popupContent = '<table>' +
+                '<tr><td colspan="2">' + (feature.properties['id'] || '') + '</td></tr>' +
+                '<tr><td colspan="2">' + (feature.properties['Name'] || '') + '</td></tr>' +
+                '<tr><td colspan="2">' + (feature.properties['descriptio'] || '') + '</td></tr>' +
+                '<tr><td colspan="2">' + (feature.properties['timestamp'] || '') + '</td></tr>' +
+                '<tr><td colspan="2">' + (feature.properties['begin'] || '') + '</td></tr>' +
+                '<tr><td colspan="2">' + (feature.properties['end'] || '') + '</td></tr>' +
+                '<tr><td colspan="2">' + (feature.properties['altitudeMo'] || '') + '</td></tr>' +
+                '<tr><td colspan="2">' + (feature.properties['tessellate'] || '') + '</td></tr>' +
+                '<tr><td colspan="2">' + (feature.properties['extrude'] || '') + '</td></tr>' +
+                '<tr><td colspan="2">' + (feature.properties['visibility'] || '') + '</td></tr>' +
+                '<tr><td colspan="2">' + (feature.properties['drawOrder'] || '') + '</td></tr>' +
+                '<tr><td colspan="2">' + (feature.properties['icon'] || '') + '</td></tr>' +
+            '</table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+            layer.on('popupopen', function(e) { addClassToPopupIfMedia(content, e.popup); });
+            layer.bindPopup(content, { maxHeight: 400 });
+        }
+        function style_ROADS_1_0(feature) {
+            var context = { feature: feature, variables: {} };
+            if (exp_ROADS_1rule0_eval_expression(context)) {
+                return { pane: 'pane_ROADS_1', stroke: false, fill: true, fillOpacity: 1, fillColor: 'rgba(228,8,12,1.0)' };
+            } else if (exp_ROADS_1rule1_eval_expression(context)) {
+                return { pane: 'pane_ROADS_1', stroke: false, fill: true, fillOpacity: 1, fillColor: 'rgba(178,223,138,1.0)' };
+            } else {
+                return { fill: false, stroke: false };
+            }
+        }
+        map.createPane('pane_ROADS_1');
+        map.getPane('pane_ROADS_1').style.zIndex = 401;
+        map.getPane('pane_ROADS_1').style['mix-blend-mode'] = 'normal';
+        var layer_ROADS_1 = L.geoJson(json_ROADS_1, {
+            pane: 'pane_ROADS_1',
+            onEachFeature: pop_ROADS_1,
+            style: style_ROADS_1_0
+        }).addTo(map);
+
+        // Controls: zoom + locate
+        L.control.zoom({ position: 'topleft' }).addTo(map);
+        L.control.locate({ locateOptions: { maxZoom: 19 }, position: 'topleft' }).addTo(map);
+
+        // SEARCH CONTROL
+        var searchGroup = new L.LayerGroup([layer_BUILDINGS_0, layer_ROADS_1]);
+        var searchControl = new L.Control.Search({
+            layer: searchGroup,
+            propertyName: 'Name',
+            marker: false,
+            moveToLocation: function(latlng, title) {
+                map.setView(latlng, 20);
+            },
+            initial: false,
+            autoCollapse: true,
+            collapsed: true,
+            position: 'topleft',
+            textPlaceholder: 'Search…'
+        });
+        map.addControl(searchControl);
+        // When a feature is found, open its popup
+        searchControl.on('search:locationfound', function(e) {
+            if (e.layer && e.layer.openPopup) {
+                e.layer.openPopup();
+            }
+        });
+
+        // Layer tree
+        var overlaysTree = [
+            { label: 'ROADS<br /><table><tr><td><img src="legend/ROADS_1_LINKROADS0.png"/></td><td>LINK ROADS</td></tr>' +
+              '<tr><td><img src="legend/ROADS_1_CARROADS1.png"/></td><td>CAR ROADS</td></tr></table>', layer: layer_ROADS_1 },
+            { label: '<img src="legend/BUILDINGS_0.png" /> BUILDINGS', layer: layer_BUILDINGS_0 }
+        ];
+        L.control.layers.tree(null, overlaysTree, { collapsed: false }).addTo(map);
+
+        // Labels & bounds
+        var bounds_group = new L.featureGroup([layer_BUILDINGS_0, layer_ROADS_1]);
+        map.fitBounds(bounds_group.getBounds());
+        function resetLabels(layers) { /* original label reset code */ }
+        map.on('zoomend layeradd layerremove', function(){ resetLabels([layer_BUILDINGS_0]); });
+        </script>
+    </body>
+</html>

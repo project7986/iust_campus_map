@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="stylesheet" href="css/leaflet.css">
+    <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+    <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+    <link rel="stylesheet" href="css/qgis2web.css">
+    <link rel="stylesheet" href="css/fontawesome-all.min.css">
+    <link rel="stylesheet" href="css/leaflet.photon.css">
+    <style>
+    html, body, #map {
+        width: 100%; height: 100%; margin: 0; padding: 0;
+    }
+    /* Search bar collapsed/expanded styles */
+    #search-wrapper {
+        position: absolute; top: 10px; left: 60px; z-index: 1000;
+        background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        display: flex; align-items: center; overflow: hidden;
+        transition: width 0.3s ease;
+        width: 40px; /* only icon visible */
+    }
+    #search-wrapper.expanded {
+        width: 360px; /* show input + buttons */
+    }
+    #search-wrapper button, #search-wrapper input {
+        border: none; background: none; cursor: pointer;
+        transition: opacity 0.3s ease;
+    }
+    #search-wrapper input {
+        flex: 1; padding: 6px 8px; font-size: 16px;
+        border: 1px solid #ccc; border-radius: 4px;
+        opacity: 1;
+    }
+    #search-wrapper button#clearBtn {
+        margin-left: -35px; font-size: 18px; opacity: 1;
+    }
+    /* hide input/clear when collapsed */
+    #search-wrapper.collapsed input,
+    #search-wrapper.collapsed button#clearBtn {
+        opacity: 0; pointer-events: none;
+    }
+    #search-wrapper > button#searchToggle {
+        margin: 0 8px;
+    }
+    </style>
+    <title>Map with Search</title>
+</head>
+<body>
+    <!-- Search wrapper: collapsed initially -->
+    <div id="search-wrapper" class="collapsed">
+        <button id="searchToggle"><img src="https://img.icons8.com/material-outlined/24/000000/search--v1.png"/></button>
+        <input id="customSearch" type="text" placeholder="Search for buildings or roads…">
+        <button id="clearBtn">✕</button>
+        <button id="searchBtn"><img src="https://img.icons8.com/material-outlined/24/000000/search--v1.png"/></button>
+    </div>
+
+    <!-- Map container -->
+    <div id="map"></div>
+
+    <!-- Scripts -->
+    <script src="js/qgis2web_expressions.js"></script>
+    <script src="js/leaflet.js"></script>
+    <script src="js/L.Control.Layers.Tree.min.js"></script>
+    <script src="js/L.Control.Locate.min.js"></script>
+    <script src="js/leaflet.rotatedMarker.js"></script>
+    <script src="js/leaflet.pattern.js"></script>
+    <script src="js/leaflet-hash.js"></script>
+    <script src="js/Autolinker.min.js"></script>
+    <script src="js/rbush.min.js"></script>
+    <script src="js/labelgun.min.js"></script>
+    <script src="js/labels.js"></script>
+    <script src="js/leaflet.photon.js"></script>
+    <script src="data/BUILDINGS_0.js"></script>
+    <script src="data/ROADS_1.js"></script>
+
+    <script>
+    // Initialize map
+    var map = L.map('map', { zoomControl:false, maxZoom:28, minZoom:1 })
+        .fitBounds([[33.921384683654864,75.01147811149058],[33.93036730191615,75.03063142978719]]);
+    var hash = new L.Hash(map);
+    map.attributionControl.setPrefix(
+        '<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; ' +
+        '<a href="https://leafletjs.com">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>'
+    );
+    var autolinker = new Autolinker({truncate:{length:30, location:'smart'}});
+
+    // Popup helpers
+    function removeEmptyRowsFromPopupContent(content, feature) {
+        var tempDiv=document.createElement('div'); tempDiv.innerHTML=content;
+        tempDiv.querySelectorAll('tr').forEach(function(row){
+            var td=row.querySelector('td.visible-with-data'), key=td?td.id:'';
+            if(td && feature.properties[key]==null) row.remove();
+        });
+        return tempDiv.innerHTML;
+    }
+    function addClassToPopupIfMedia(content,popup){
+        var d=document.createElement('div'); d.innerHTML=content;
+        if(d.querySelector('td img')) { popup._contentNode.classList.add('media'); setTimeout(()=>popup.update(),10);} 
+        else popup._contentNode.classList.remove('media');
+    }
+
+    // Controls
+    L.control.zoom({position:'topleft'}).addTo(map);
+    L.control.locate({locateOptions:{maxZoom:19}, position:'topleft'}).addTo(map);
+
+    // Buildings layer
+    function pop_BUILDINGS_0(f,l){
+        var html='<table>'+
+            '<tr><td colspan="2">'+(f.properties.Name||'')+'</td></tr>'+
+            '</table>';
+        var c=removeEmptyRowsFromPopupContent(html,f);
+        l.on('popupopen',e=>addClassToPopupIfMedia(c,e.popup));
+        l.bindPopup(c,{maxHeight:400});
+    }
+    map.createPane('pane_BUILDINGS_0');
+    var layer_BUILDINGS_0=L.geoJson(json_BUILDINGS_0,{pane:'pane_BUILDINGS_0',onEachFeature:pop_BUILDINGS_0,style:{fill:true,fillColor:'rgba(239,215,27,1)',color:'rgba(35,35,35,1)',weight:1,fillOpacity:1}}).addTo(map);
+
+    // Roads layer (two colors)
+    function pop_ROADS_1(f,l){
+        var html='<table>'+
+            '<tr><td colspan="2">'+(f.properties.Name||'')+'</td></tr>'+
+            '</table>';
+        var c=removeEmptyRowsFromPopupContent(html,f);
+        l.on('popupopen',e=>addClassToPopupIfMedia(c,e.popup));
+        l.bindPopup(c,{maxHeight:400});
+    }
+    function style_ROADS_1_0(feature){
+        var isLink=exp_ROADS_1rule0_eval_expression({feature:{},variables:{}});
+        return {pane:'pane_ROADS_1',fill:true,fillColor:isLink?'rgba(228,8,12,1)':'rgba(178,223,138,1)',fillOpacity:1,stroke:false};
+    }
+    map.createPane('pane_ROADS_1');
+    var layer_ROADS_1=L.geoJson(json_ROADS_1,{pane:'pane_ROADS_1',onEachFeature:pop_ROADS_1,style:style_ROADS_1_0}).addTo(map);
+
+    // Layer tree
+    L.control.layers.tree(null,[
+        {label:'<img src="legend/ROADS_1_LINKROADS0.png"/> LINK ROADS',layer:layer_ROADS_1},
+        {label:'<img src="legend/BUILDINGS_0.png"/> BUILDINGS',layer:layer_BUILDINGS_0}
+    ],{collapsed:false}).addTo(map);
+
+    // Collect features
+    var allFeatures=[];
+    layer_BUILDINGS_0.eachLayer(l=>allFeatures.push({name:l.feature.properties.Name,layer:l}));
+    layer_ROADS_1.eachLayer(l=>allFeatures.push({name:l.feature.properties.Name,layer:l}));
+
+    // Search toggle
+    var wrapper=document.getElementById('search-wrapper');
+    var toggle=document.getElementById('searchToggle');
+    toggle.addEventListener('click',function(){
+        var expanded=wrapper.classList.toggle('expanded');
+        wrapper.classList.toggle('collapsed',!expanded);
+        if(expanded) document.getElementById('customSearch').focus();
+    });
+
+    // Search logic
+    var input=document.getElementById('customSearch'), sb=document.getElementById('searchBtn'), cb=document.getElementById('clearBtn');
+    sb.addEventListener('click',function(){
+        var q=input.value.trim().toLowerCase(); if(!q) return;
+        var m=allFeatures.find(f=>f.name.toLowerCase().includes(q));
+        if(m){ var ly=m.layer; map.fitBounds(ly.getBounds()); ly.openPopup(); ly.setStyle({color:'#00ff00',weight:4});
+            setTimeout(()=>{if(layer_BUILDINGS_0.hasLayer(ly)) layer_BUILDINGS_0.resetStyle(ly); if(layer_ROADS_1.hasLayer(ly)) layer_ROADS_1.resetStyle(ly);},2000);
+        } else alert('No match found');
+    });
+    cb.addEventListener('click',function(){input.value=''; input.focus();});
+    input.addEventListener('keydown',e=>{ if(e.key==='Enter') sb.click(); });
+    </script>
+</body>
+</html>
